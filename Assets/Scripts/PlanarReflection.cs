@@ -24,6 +24,9 @@ public class PlanarReflection : MonoBehaviour
 
         outputTexture = new RenderTexture(Screen.width, Screen.height, 24);
 
+        //reflectiveMat1.SetFloat("_planeScale", 5.0f);
+        //reflectiveMat2.SetFloat("_planeScale", 5.0f);
+
         RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
     }
 

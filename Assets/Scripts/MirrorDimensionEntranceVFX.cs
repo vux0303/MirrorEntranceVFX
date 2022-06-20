@@ -11,11 +11,19 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
 
     public MeshFilter clockwiseMesh;
 
+    public MeshRenderer clockwiseRenderer;
+
+    public MeshRenderer counterClockwiseRenderer;
+
+    public Material mirrorEntranceMat;
+
+    private MaterialPropertyBlock propertyBlock;
+
 
     [Range(1, 5)]
     public int splitFactor = 1;
 
-    [Range(1, 5)]
+    [Range(1, 10)]
     public float scale = 1f;
 
     [Range(1, 20)]
@@ -24,9 +32,6 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
     [Range(1, 50)]
     public float rotateSpeed = 1;
 
-    float mostInnerReflectionChange = 0.9f;
-    float mostOutterReflectionChange = 0.1f;
-
     float angleZ = 0;
 
     private void OnEnable()
@@ -34,6 +39,16 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
         clockwiseMesh.mesh = GenerateCircle();
         counterClockwiseMesh.mesh = GenerateCircle();
         stencilMesh.mesh = GenerateStencil();
+
+        if (propertyBlock == null)
+        {
+            propertyBlock = new MaterialPropertyBlock();
+        }
+
+        clockwiseRenderer.sharedMaterial.SetFloat("_planeScale", scale);
+        counterClockwiseRenderer.sharedMaterial.SetFloat("_planeScale", scale);
+        propertyBlock.SetInt("_Ref", 0);
+        counterClockwiseRenderer.SetPropertyBlock(propertyBlock);
     }
 
     void Update()
@@ -119,27 +134,27 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
         for (int circ = 0; circ < resolution; ++circ)
         {
             float angleStep = (Mathf.PI * 2f) / ((circ + 1) * 6);
-            float reflectiveChance = 1 - circ/(float)resolution;
-            //Debug.Log("Chance " + reflectiveChance);
+            float reflectiveChance = 1 - circ/(float)resolution; //from inner circe to outter circle, reflective chances of triangle decrease
             float radius = RangeMap((circ + 1) / (float)resolution) * resolution; //remap step of each circle
-            float offsetRange = Mathf.Lerp(0.01f, 0.1f, RangeMap(circ / (float)resolution)); //RangeMap(circ / (float)resolution)
-            //Debug.Log("offsetRange " + offsetRange);
+            float sampleOffsetRange = Mathf.Lerp(0.01f, 0.1f, RangeMap(circ / (float)resolution)); //from inner circe to outter circle, sample offset increase
             float compensationRadius = radius - innerCircRadius;     //next step range
             innerCircRadius = radius;
-            //Debug.Log("radius: " + radius);
             for (int point = 0; point < (circ + 1) * 6; ++point)
             {
-                int isReflective = randomWithPercentage(reflectiveChance);
-                //Debug.Log("isReflective "+ isReflective);
-                float refractionOffset = Random.Range(-offsetRange, offsetRange);
-                float reflectionOffset = Random.Range(-offsetRange, offsetRange);
+                //create vertices 
                 float radiusDisplacement = Random.Range(0f, compensationRadius * 0.3f) * ((point & 1) * 2 - 1); // to varying radius of each point, make the mesh less uniform
                 float angularDisplacement = Random.Range(-angleStep * 0.4f, angleStep * 0.4f);                  // to varying angleStep of each point, make the mesh less uniform
                 vtc.Add(new Vector2(
                     Mathf.Cos(angleStep * point + angularDisplacement),
                     Mathf.Sin(angleStep * point + angularDisplacement)
                     ) * d * (radius + radiusDisplacement));
-                colors.Add(new Color(isReflective, reflectionOffset, refractionOffset));
+
+                //vertices data for shader store in color channel
+                int isReflective = randomWithPercentage(reflectiveChance);
+                float refractionOffset = Random.Range(-sampleOffsetRange, sampleOffsetRange);
+                float reflectionOffset = Random.Range(-sampleOffsetRange, sampleOffsetRange);
+                //Debug.Log("compensationRadius" + compensationRadius);
+                colors.Add(new Color(isReflective, reflectionOffset, refractionOffset, compensationRadius));
             }
         }
 
@@ -170,11 +185,18 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
             }
         }
 
+        var uvs = new Vector2[vtc.Count];
+        for (var i = 0; i < vtc.Count; ++i)
+        {
+            uvs[i] = new Vector2(vtc[i].x / (scale * 2) + 0.5f, vtc[i].y / (scale * 2) + 0.5f);
+        }
+
         // Create the mesh
         var m = new Mesh();
         m.SetVertices(vtc);
         m.SetTriangles(tris, 0);
         m.SetColors(colors);
+        m.uv = uvs;
         m.RecalculateNormals();
         m.UploadMeshData(true);
 
