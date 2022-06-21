@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 [ExecuteAlways]
 public class MirrorDimensionEntranceVFX : MonoBehaviour
@@ -19,6 +20,10 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
 
     private MaterialPropertyBlock propertyBlock;
 
+    private IEnumerator showVfxCoroutine;
+
+    PlanarReflection planarReflection;
+
 
     [Range(1, 5)]
     public int splitFactor = 1;
@@ -34,7 +39,46 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
 
     float angleZ = 0;
 
+    IEnumerator WaitAndShow()
+    {
+        // suspend execution for 2 seconds
+        yield return new WaitForSeconds(2);
+        Show();
+    }
+
     private void OnEnable()
+    {
+        planarReflection = GetComponent<PlanarReflection>();
+        if (Application.isPlaying)
+        {
+            showVfxCoroutine = WaitAndShow();
+            StartCoroutine(showVfxCoroutine);
+        }
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        //StartCoroutine("WaitAndShow");
+    }
+
+    private void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.ExitingPlayMode)
+        {
+            if (clockwiseMesh.sharedMesh != null)
+            {
+                clockwiseMesh.sharedMesh = null;
+            }
+            if (counterClockwiseMesh.sharedMesh != null)
+            {
+                counterClockwiseMesh.sharedMesh = null;
+            }
+            if (stencilMesh.sharedMesh != null)
+            {
+                stencilMesh.sharedMesh = null;
+            }
+        }
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+    }
+
+    private void Show()
     {
         clockwiseMesh.mesh = GenerateCircle();
         counterClockwiseMesh.mesh = GenerateCircle();
@@ -45,10 +89,17 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
             propertyBlock = new MaterialPropertyBlock();
         }
 
+        float timeY = Shader.GetGlobalVector("_Time").y + 3; 
+        clockwiseRenderer.sharedMaterial.SetFloat("_appearTime", timeY);
+        counterClockwiseRenderer.sharedMaterial.SetFloat("_appearTime", timeY);
+
         clockwiseRenderer.sharedMaterial.SetFloat("_planeScale", scale);
         counterClockwiseRenderer.sharedMaterial.SetFloat("_planeScale", scale);
+
         propertyBlock.SetInt("_Ref", 0);
         counterClockwiseRenderer.SetPropertyBlock(propertyBlock);
+
+        planarReflection.StartRenderReflection();
     }
 
     void Update()
@@ -201,6 +252,5 @@ public class MirrorDimensionEntranceVFX : MonoBehaviour
         m.UploadMeshData(true);
 
         return m;
-
     }
 }

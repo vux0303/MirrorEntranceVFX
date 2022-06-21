@@ -99,9 +99,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4509ecaff27a624c9e46f0c8121d28b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  displayInEditor: 0
   stencilMesh: {fileID: 3719998199132276362}
   counterClockwiseMesh: {fileID: 3719998200160110735}
   clockwiseMesh: {fileID: 3719998199967184561}
+  clockwiseRenderer: {fileID: 0}
+  counterClockwiseRenderer: {fileID: 0}
+  mirrorEntranceMat: {fileID: 0}
   splitFactor: 4
   scale: 1
   resolution: 6

@@ -55,6 +55,7 @@ Shader "MirrorEntrance"
             float _planeScale;
             float4 _Color;
             int _Ref;
+            float _appearTime;
 
             v2f vert (appdata v)
             {
@@ -150,8 +151,10 @@ Shader "MirrorEntrance"
                 //
                 // Combine result
                 //
+                half isAppear = step(_appearTime - ran1d * 3, _Time.y); 
                 half4 outputColor = refractiveColor + reflectiveColor;
                 if (gradient < 1) outputColor = overLayColor;
+                outputColor *= isAppear;
                 return outputColor;
             }
 

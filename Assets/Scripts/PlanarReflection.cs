@@ -14,9 +14,20 @@ public class PlanarReflection : MonoBehaviour
 
     private void Start()
     {
+
+    }
+
+    public void StartRenderReflection()
+    {
+        if (reflectionCamera)
+        {
+            reflectionCamera.gameObject.SetActive(true);
+            return;
+        }
+
         reflectionPlane = gameObject;
 
-        GameObject reflectionCameraNode = new GameObject();
+        GameObject reflectionCameraNode = new GameObject("PlanarCamera");
         reflectionCamera = reflectionCameraNode.AddComponent<Camera>();
         reflectionCamera.enabled = true;
 
